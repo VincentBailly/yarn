@@ -12,6 +12,7 @@ import lockMutex from '../util/mutex.js';
 
 const cmdShim = require('@zkochan/cmd-shim');
 const path = require('path');
+const __fetchCache = {};
 
 export default class BaseFetcher {
   constructor(dest: string, remote: PackageRemote, config: Config) {
@@ -49,7 +50,9 @@ export default class BaseFetcher {
       await fs.mkdirp(this.dest);
 
       // fetch package and get the hash
-      const {hash} = await this._fetch();
+      const stableRef = `${this.reference}`;
+      __fetchCache[stableRef] = __fetchCache[stableRef] || this._fetch();
+      const {hash} = await __fetchCache[stableRef];
 
       const pkg = await (async () => {
         // load the new normalized manifest
@@ -106,6 +109,7 @@ export default class BaseFetcher {
         ),
       );
 
+      delete __fetchCache[stableRef];
       return {
         hash,
         dest: this.dest,
