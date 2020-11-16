@@ -168,6 +168,10 @@ function normalizeFlags(config: Config, rawFlags: Object): Flags {
     workspaceRootIsCwd: rawFlags.workspaceRootIsCwd !== false,
   };
 
+  if (flags.frozenLockfile) {
+    flags.includeWorkspaceDeps = true;
+  }
+
   if (config.getOption('ignore-scripts')) {
     flags.ignoreScripts = true;
   }
