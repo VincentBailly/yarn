@@ -175,38 +175,6 @@ export default class InstallationIntegrityChecker {
     return files;
   }
 
-  _getWorkspacesPatterns(
-    workspaceLayout: WorkspaceLayout,
-    includeOnlyNonOptionalDeps?: boolean = false,
-  ): Array<string> {
-    const result = [];
-
-    for (const name of Object.keys(workspaceLayout.workspaces)) {
-      if (!workspaceLayout.workspaces[name].loc) {
-        continue;
-      }
-
-      const manifest = workspaceLayout.workspaces[name].manifest;
-
-      if (manifest) {
-        const depTypes = includeOnlyNonOptionalDeps ? ['devDependencies', 'dependencies'] : constants.DEPENDENCY_TYPES;
-        for (const dependencyType of depTypes) {
-          const dependencies = manifest[dependencyType];
-
-          if (!dependencies) {
-            continue;
-          }
-
-          for (const dep of Object.keys(dependencies)) {
-            result.push(`${dep}@${dependencies[dep]}`);
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-
   /**
    * Generate integrity hash of input lockfile.
    */
@@ -237,7 +205,27 @@ export default class InstallationIntegrityChecker {
         return !workspaceLayout.getManifestByPattern(p);
       });
 
-      result.topLevelPatterns.push(...this._getWorkspacesPatterns(workspaceLayout));
+      for (const name of Object.keys(workspaceLayout.workspaces)) {
+        if (!workspaceLayout.workspaces[name].loc) {
+          continue;
+        }
+
+        const manifest = workspaceLayout.workspaces[name].manifest;
+
+        if (manifest) {
+          for (const dependencyType of constants.DEPENDENCY_TYPES) {
+            const dependencies = manifest[dependencyType];
+
+            if (!dependencies) {
+              continue;
+            }
+
+            for (const dep of Object.keys(dependencies)) {
+              result.topLevelPatterns.push(`${dep}@${dependencies[dep]}`);
+            }
+          }
+        }
+      }
     }
 
     result.topLevelPatterns.sort(sortAlpha);
@@ -382,11 +370,8 @@ export default class InstallationIntegrityChecker {
     flags: IntegrityFlags,
     workspaceLayout: ?WorkspaceLayout,
   ): Promise<IntegrityCheckResult> {
-    // check if patterns exist in lockfile, include all workspaces patterns as well
-    const allPatterns = workspaceLayout
-      ? this._getWorkspacesPatterns(workspaceLayout, true).concat(patterns)
-      : patterns;
-    const missingPatterns = allPatterns.filter(
+    // check if patterns exist in lockfile
+    const missingPatterns = patterns.filter(
       p => !lockfile[p] && (!workspaceLayout || !workspaceLayout.getManifestByPattern(p)),
     );
 
