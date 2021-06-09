@@ -513,7 +513,7 @@ export function copy(src: string, dest: string, reporter: Reporter): Promise<voi
   return copyBulk([{src, dest}], reporter);
 }
 
-function WorkerScript() {
+const WorkerScript = `function WorkerScript() {
   // @flow
   const {parentPort} = require('worker_threads');
   const fs = require('fs');
@@ -538,11 +538,11 @@ function WorkerScript() {
       parentPort.emit('error', e);
     }
   });
-}
+}`;
 
 const {Worker} = require('worker_threads');
 function spawnWorker(): Worker {
-  return new Worker(`(${WorkerScript.toString()})()`, {eval: true});
+  return new Worker(`(${WorkerScript})()`, {eval: true});
 }
 
 const numberOfWorkers = process.env.WORKERS_LIMIT
